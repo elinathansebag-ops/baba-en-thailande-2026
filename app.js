@@ -1,7 +1,7 @@
 /* Avances Vacances — logique de l'application */
 import { Cloud } from './sync.js';
 
-export const VERSION = '5.2.0';
+export const VERSION = '5.3.0';
 
 /* ---------------- Données ----------------
    S = état du voyage, partagé avec tout le groupe.
@@ -45,13 +45,19 @@ function normalize(o) {
   if (!s.currencies || typeof s.currencies !== 'object') s.currencies = { EUR: 1 };
   ['categories', 'people', 'expenses', 'payments', 'disputes'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; });
   if (!s.categories.length) s.categories = structuredClone(DEFAULT.categories);
+  // Un appareil resté sur une ancienne version pouvait avoir une liste vide :
+  // on remet le groupe par défaut plutôt que de laisser l'app inutilisable.
+  if (!s.people.length) s.people = structuredClone(GROUPE);
   if (!s.currencies[s.base]) s.currencies[s.base] = 1;
   s.payments.forEach(p => { if (!p.status) p.status = 'confirmed'; });
 
   // Migration : les comptes étaient tenus en euros dans les versions
   // précédentes. On bascule une seule fois sur le baht, sans toucher aux
   // montants saisis — seule la devise d'affichage des comptes change.
-  if (!s.v && s.base !== 'THB' && s.currencies.THB) {
+  if (!s.v && s.base !== 'THB') {
+    if (!s.currencies.THB) {                     // appareil qui n'avait que l'euro
+      s.currencies.THB = (s.currencies.EUR || 1) / 37.05;
+    }
     const f = s.currencies.THB;
     const nc = {};
     Object.keys(s.currencies).forEach(k => nc[k] = s.currencies[k] / f);
@@ -421,8 +427,20 @@ function renderCloud() {
     : 'Mode local (non partagé)';
 
   if (!Cloud.isConfigured()) {
-    box.innerHTML = `<div class="muted">Le partage en ligne n'est pas encore configuré.<br>
-      Renseigne les clés Firebase dans <code>firebase-config.js</code> (voir le README).</div>`;
+    box.innerHTML = `<div class="muted">Le partage en ligne n'est pas encore actif sur cet appareil.<br>
+      Si tu viens de mettre les clés Firebase en ligne, il s'agit du cache du navigateur :
+      recharge la page en forçant (⌘⇧R sur Mac, ou ferme et rouvre l'onglet).</div>
+      <div class="row" style="margin-top:10px"><button id="btnForce">Vider le cache et recharger</button></div>`;
+    document.getElementById('btnForce').onclick = async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          const rs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(rs.map(r => r.unregister()));
+        }
+        if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }
+      } catch (e) {}
+      location.reload(true);
+    };
     return;
   }
   if (cloudCode) {
