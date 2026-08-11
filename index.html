@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#FF6B57">
 <meta name="description" content="Gère simplement les avances d'argent entre amis en vacances.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Vacances">
+<meta name="apple-mobile-web-app-title" content="Thaïlande">
 <title>Avances Vacances</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -38,27 +38,37 @@
       <h2>Dépenses</h2>
       <div id="expList"><div class="empty">Aucune dépense.<br>Appuie sur + pour commencer.</div></div>
     </div>
-  </section>
-
-  <!-- ONGLET BILAN -->
-  <section id="v-bal" class="hidden">
-    <div class="card">
-      <h2>Soldes</h2>
-      <div id="balList"><div class="empty">Ajoute des amis et des dépenses.</div></div>
-      <div class="hint">Positif = on te doit de l'argent. Négatif = tu dois de l'argent.</div>
-    </div>
-    <div class="card">
-      <h2>Qui rembourse qui</h2>
-      <div id="settleList"><div class="empty">Rien à rembourser.</div></div>
-      <button class="ghost" onclick="shareSummary()" style="width:100%;margin-top:6px">Partager le résumé</button>
-    </div>
-    <div class="card">
+    <div class="card" id="catCard">
       <h2>Par catégorie</h2>
       <table id="catTable"><tr><td class="muted">—</td></tr></table>
     </div>
+  </section>
+
+  <!-- ONGLET COMPTES -->
+  <section id="v-acc" class="hidden">
+    <div class="card alertcard hidden" id="actionCard">
+      <h2>À valider par toi</h2>
+      <div id="actionList"></div>
+    </div>
+    <div class="card" id="dueCard">
+      <h2>Restant dû</h2>
+      <div class="big" id="dueTotal">0</div>
+      <div class="muted" id="dueSub"></div>
+    </div>
     <div class="card">
-      <h2>Par personne (ce qui a été avancé)</h2>
-      <table id="payTable"><tr><td class="muted">—</td></tr></table>
+      <h2>Comptes</h2>
+      <div id="accList"><div class="empty">Ajoute des amis dans Réglages.</div></div>
+      <div class="hint">Appuie sur quelqu'un pour voir le détail de son compte et lui envoyer son relevé.</div>
+    </div>
+    <div class="card">
+      <h2>Remboursements reçus</h2>
+      <div id="payList"><div class="empty">Aucun remboursement enregistré.</div></div>
+      <button class="ghost" id="btnAddPay" style="width:100%;margin-top:10px">+ Enregistrer un remboursement</button>
+    </div>
+    <div class="card">
+      <h2>Solde final : qui rembourse qui</h2>
+      <div id="settleList"><div class="empty">Rien à rembourser.</div></div>
+      <button class="ghost" onclick="shareSummary()" style="width:100%;margin-top:6px">Partager le bilan du groupe</button>
     </div>
   </section>
 
@@ -77,19 +87,21 @@
         <input type="text" id="newPerson" placeholder="Prénom" autocomplete="off">
         <button style="flex:0 0 auto" onclick="addPerson()">Ajouter</button>
       </div>
+      <button class="ghost" id="btnWho" style="width:100%;margin-top:10px">Je suis…</button>
+      <div class="hint">L'étoile ★ indique qui tu es. Ce choix est propre à <b>ton</b> téléphone : chacun de tes amis désigne son propre nom de son côté, sans changer le tien.</div>
     </div>
 
     <div class="card">
       <h2>Devises</h2>
-      <label>Devise principale (celle des comptes)</label>
+      <label for="baseCur">Devise principale (celle des comptes)</label>
       <select id="baseCur" onchange="setBase(this.value)"></select>
       <div id="curList" style="margin-top:10px"></div>
       <div class="row" style="margin-top:10px">
         <input type="text" id="newCurCode" placeholder="Code (ex. THB)" maxlength="4" autocomplete="off">
-        <input type="number" id="newCurRate" placeholder="1 unité = ?" step="0.000001">
+        <input type="number" id="newCurRate" placeholder="1 € = ?" step="0.01">
         <button style="flex:0 0 auto" onclick="addCur()">+</button>
       </div>
-      <div class="hint">Le taux indique combien vaut <b>1 unité de cette devise</b> dans la devise principale. Ex. si la principale est EUR et 1 THB = 0,026 EUR, tape 0.026.</div>
+      <div class="hint">Combien d'unités de la devise étrangère vaut 1 unité de la devise principale. Ex. 1 € = 37,05 ฿.</div>
     </div>
 
     <div class="card">
@@ -122,15 +134,15 @@
   </section>
 </main>
 
-<button class="fab" id="fab" onclick="openExpense()" aria-label="Ajouter une dépense">+</button>
+<button class="fab" id="fab" aria-label="Ajouter">+</button>
 
 <nav>
-  <button id="t-exp" class="on" onclick="tab('exp')"><span class="i">🧾</span>Dépenses</button>
-  <button id="t-bal" onclick="tab('bal')"><span class="i">⚖️</span>Bilan</button>
+  <button id="t-acc" class="on" onclick="tab('acc')"><span class="i">👥<span class="badge hidden" id="accBadge">0</span></span>Comptes</button>
+  <button id="t-exp" onclick="tab('exp')"><span class="i">🧾</span>Dépenses</button>
   <button id="t-set" onclick="tab('set')"><span class="i">⚙️</span>Réglages</button>
 </nav>
 
-<!-- FEUILLE DEPENSE -->
+<!-- FEUILLE : DEPENSE -->
 <div class="sheet" id="sheet">
   <div class="inner">
     <div class="head">
@@ -138,35 +150,16 @@
       <button class="ghost mini" onclick="closeSheet()">Fermer</button>
     </div>
 
-    <label for="fLabel">Description</label>
-    <input type="text" id="fLabel" placeholder="Ex. Restaurant du soir" autocomplete="off">
-
-    <div class="row" id="amountRow">
-      <div>
-        <label for="fAmount">Montant</label>
-        <input type="number" id="fAmount" inputmode="decimal" step="0.01" placeholder="0.00">
-      </div>
-      <div style="flex:0 0 110px">
-        <label for="fCur">Devise</label>
-        <select id="fCur"></select>
-      </div>
+    <label for="fAmount">Montant payé</label>
+    <div class="amtbox">
+      <input type="number" id="fAmount" inputmode="decimal" step="0.01" placeholder="0" autofocus>
+      <div class="seg curseg" id="fCurSeg"></div>
     </div>
+    <div class="conv" id="fConv"></div>
 
-    <div class="row">
-      <div>
-        <label for="fPayer">Payé par</label>
-        <select id="fPayer"></select>
-      </div>
-      <div>
-        <label for="fDate">Date</label>
-        <input type="date" id="fDate">
-      </div>
-    </div>
+    <input type="text" id="fLabel" placeholder="Description (facultatif)" autocomplete="off" style="margin-top:10px">
 
-    <label for="fCat">Catégorie</label>
-    <select id="fCat"></select>
-
-    <label>Répartition</label>
+    <label>Comment ça se partage</label>
     <div class="seg">
       <button id="m-equal" onclick="setMode('equal')">Parts égales</button>
       <button id="m-custom" onclick="setMode('custom')">Montant par personne</button>
@@ -174,10 +167,95 @@
 
     <div id="splitBox"></div>
 
+    <button class="ghost mini" id="moreBtn" style="width:100%;margin-top:12px">Plus d'options</button>
+    <div id="moreBox" class="hidden">
+      <div class="row">
+        <div>
+          <label for="fPayer">Payé par</label>
+          <select id="fPayer"></select>
+        </div>
+        <div>
+          <label for="fDate">Date</label>
+          <input type="date" id="fDate">
+        </div>
+      </div>
+      <label for="fCat">Catégorie</label>
+      <select id="fCat"></select>
+    </div>
+    <div id="disputeBox"></div>
+
     <div class="row" style="margin-top:16px">
       <button id="delBtn" class="danger hidden" style="flex:0 0 auto" onclick="deleteExpense()">Supprimer</button>
       <button onclick="saveExpense()">Enregistrer</button>
     </div>
+  </div>
+</div>
+
+<!-- FEUILLE : REMBOURSEMENT -->
+<div class="sheet" id="paySheet">
+  <div class="inner">
+    <div class="head">
+      <h2 id="paySheetTitle">Remboursement</h2>
+      <button class="ghost mini" onclick="closePaySheet()">Fermer</button>
+    </div>
+    <div class="row">
+      <div>
+        <label for="pFrom">De qui</label>
+        <select id="pFrom"></select>
+      </div>
+      <div>
+        <label for="pTo">À qui</label>
+        <select id="pTo"></select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="pAmount">Montant</label>
+        <input type="number" id="pAmount" inputmode="decimal" step="0.01" placeholder="0.00">
+      </div>
+      <div style="flex:0 0 110px">
+        <label for="pCur">Devise</label>
+        <select id="pCur"></select>
+      </div>
+    </div>
+    <div id="pSuggest" class="hint"></div>
+    <div class="row">
+      <div>
+        <label for="pDate">Date</label>
+        <input type="date" id="pDate">
+      </div>
+      <div>
+        <label for="pNote">Note (facultatif)</label>
+        <input type="text" id="pNote" placeholder="Ex. virement" autocomplete="off">
+      </div>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button id="pDelBtn" class="danger hidden" style="flex:0 0 auto" onclick="deletePayment()">Supprimer</button>
+      <button onclick="savePayment()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEUILLE : RELEVE D'UNE PERSONNE -->
+<div class="sheet" id="accSheet">
+  <div class="inner">
+    <div class="head">
+      <h2 id="accTitle">Compte</h2>
+      <button class="ghost mini" onclick="closeAccSheet()">Fermer</button>
+    </div>
+    <div id="accBody"></div>
+  </div>
+</div>
+
+<!-- FEUILLE : QUI ES-TU -->
+<div class="sheet" id="whoSheet">
+  <div class="inner">
+    <div class="head">
+      <h2>Qui es-tu ?</h2>
+      <button class="ghost mini" onclick="document.getElementById('whoSheet').classList.remove('open')">Plus tard</button>
+    </div>
+    <div class="muted" style="margin-bottom:12px">Choisis ton nom dans la liste. Ce choix reste sur ton téléphone : l'app saura quelles dépenses te concernent et quels remboursements tu dois confirmer.</div>
+    <div id="whoList" class="wholist"></div>
   </div>
 </div>
 

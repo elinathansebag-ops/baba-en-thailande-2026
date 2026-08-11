@@ -1,9 +1,9 @@
 /* Service worker : rend l'app utilisable hors ligne. */
-const CACHE = 'vacances-v1-1-0';
+const CACHE = 'thailande-2026-v5';
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './sync.js',
   './firebase-config.js', './manifest.webmanifest',
-  './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'
+  './icon.svg', './icon-192.png', './icon-512.png'
 ];
 
 self.addEventListener('install', e => {

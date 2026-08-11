@@ -28,7 +28,7 @@ une seule personne paie sur place, l'app calcule qui doit quoi à qui.
 
 1. Va sur [vercel.com/new](https://vercel.com/new) et connecte-toi avec GitHub.
 2. Choisis **Import** sur ce dépôt.
-3. Ne touche à rien (le `vercel.json` fait le travail) → **Deploy**.
+3. Ne touche à rien (tous les fichiers sont à la racine) → **Deploy**.
 4. Tu obtiens une adresse du type `https://vacances-xxxx.vercel.app`.
 
 Chaque `git push` sur `main` redéploie automatiquement.
@@ -58,7 +58,7 @@ restent sur ton téléphone et tes amis ne voient rien.
 1. ⚙️ **Paramètres du projet** → onglet **Général** → section **Vos applications**
 2. Clique sur l'icône **Web `</>`**, donne un surnom, **Enregistrer l'application**
 3. Copie l'objet `firebaseConfig` affiché
-4. Colle-le dans `public/firebase-config.js` (remplace les `VOTRE_...`)
+4. Colle-le dans `firebase-config.js` (remplace les `VOTRE_...`)
 
 > Ces clés sont **publiques par nature** dans une app web : ce ne sont pas des mots
 > de passe. La sécurité vient des règles Firestore ci-dessous.
@@ -87,17 +87,16 @@ Puis `git commit` + `git push` : Vercel redéploie et le partage est actif.
 ## Structure du projet
 
 ```
-public/
-  index.html            interface
-  styles.css            styles (thème clair et sombre automatique)
-  app.js                état, calculs, rendu
-  sync.js               synchronisation Firestore temps réel
-  firebase-config.js    ← tes clés Firebase
-  manifest.webmanifest  PWA
-  sw.js                 service worker (hors ligne)
-  icons/
-firestore.rules         règles de sécurité
-vercel.json             configuration de l'hébergement
+index.html            interface
+styles.css            styles (thème clair et sombre automatique)
+app.js                état, calculs, rendu
+sync.js               synchronisation Firestore temps réel
+firebase-config.js    ← tes clés Firebase
+manifest.webmanifest  PWA
+sw.js                 service worker (hors ligne)
+icon*.png / icon.svg  icônes
+firestore.rules       règles de sécurité
+vercel.json           configuration de l'hébergement
 ```
 
 Aucune dépendance à installer, aucune étape de build : c'est du HTML/CSS/JS
@@ -152,7 +151,7 @@ ne s'est perdu.
 ## Développement local
 
 ```bash
-cd public && python3 -m http.server 8000
+python3 -m http.server 8000
 # puis http://localhost:8000
 ```
 
