@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// Règles de sécurité Firestore pour « Avances Vacances ».
+// À copier dans : console Firebase → Firestore Database → onglet Règles → Publier.
+//
+// MODE SIMPLE (sans connexion anonyme) — celui utilisé ici.
+// L'accès est protégé par le code du voyage : 6 caractères tirés au hasard
+// parmi 32, soit environ 1 milliard de combinaisons. Seul un document dont
+// l'identifiant ressemble à un code de voyage est accessible ; le reste de
+// la base est fermé.
+//
+// Si tu veux durcir plus tard : active « Anonyme » dans Authentication,
+// puis ajoute « request.auth != null && » devant chaque condition ci-dessous.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function validCode(code) {
+      return code.matches('^[A-Z0-9]{4,10}$');
+    }
+
+    match /trips/{code} {
+      allow read: if validCode(code);
+      allow create, update: if validCode(code)
+                            && request.resource.data.keys().size() < 60;
+      allow delete: if false;
+
+      match /expenses/{expenseId} {
+        allow read, write: if validCode(code);
+      }
+
+      match /payments/{paymentId} {
+        allow read, write: if validCode(code);
+      }
+
+      match /disputes/{disputeId} {
+        allow read, write: if validCode(code);
+      }
+    }
+
+    // Tout le reste est interdit.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
