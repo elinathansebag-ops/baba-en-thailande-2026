@@ -1,11 +1,14 @@
-# 💶 Avances Vacances
+# 🌅 Thaïlande 2026 — Avances
 
 Petite app web (PWA) pour gérer les avances d'argent entre amis en vacances :
 une seule personne paie sur place, l'app calcule qui doit quoi à qui.
 
+- 🏠 **Écran d'accueil = les comptes** : la liste des 8 participants avec le solde de chacun, on appuie sur un nom pour voir son relevé détaillé
+- ➕ **Saisie en 3 secondes** : le montant, qui participe, c'est tout. Payeur, date et catégorie sont repliés dans « Plus d'options »
+- 🇹🇭 **Baht et euro affichés partout**, base 1 € = 37,05 ฿, saisie en ฿ par défaut avec conversion en direct
 - 👤 **Un compte par personne** : chaque dépense s'inscrit dans le compte de chaque participant avec sa date, son libellé et son montant — comme un relevé bancaire
 - ➗ **Deux modes de répartition** : parts égales entre les participants cochés (bouton *Tout le monde* / *Sans moi*), ou montant précis par personne (le prix du plat de chacun)
-- 🪙 **Au centime près** : sur une division par 7 qui ne tombe pas rond, les centimes restants sont attribués un par un et tournent d'une dépense à l'autre. La somme des parts est toujours exactement égale au total
+- 🪙 **Au centime près** : la répartition se fait sur les centimes d'euro (pas sur les baht), donc les comptes tombent juste même quand on paie en devise étrangère. Les centimes restants sont attribués un par un et tournent d'une dépense à l'autre
 - ↩️ **Remboursements partiels** avec **double validation** : celui qui paie déclare, celui qui reçoit confirme. Tant que ce n'est pas confirmé, la ligne reste marquée « à confirmer » chez les deux
 - ⚠️ **Contestation d'une dépense** : un participant peut signaler une erreur, le payeur corrige ou maintient
 - 📵 **Identité par appareil** : chacun désigne son propre nom sur son téléphone, sans toucher à celui des autres
@@ -16,6 +19,7 @@ une seule personne paie sur place, l'app calcule qui doit quoi à qui.
 - 🏷️ **Catégories** et totaux par catégorie
 - ⚖️ **Solde final** : minimum de virements pour tout équilibrer
 - 📊 **Export CSV** avec une colonne par personne, sauvegarde JSON
+- 🎨 **Thème coucher de soleil** : mangue, corail, mer turquoise, une couleur par personne, mode sombre « nuit tropicale » automatique
 - 🔒 Aucune publicité, aucun tracking
 
 ---
