@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="description" content="Gère simplement les avances d'argent entre amis en vacances.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vacances">
+<title>Avances Vacances</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <h1>
+    <input class="trip" id="tripName" placeholder="Nom du voyage" autocomplete="off">
+    <span id="hdrTot"></span>
+  </h1>
+  <div class="sub" id="hdrSub"></div>
+  <div class="syncbar" id="syncBar" onclick="tab('set')"><span class="dot" id="syncDot"></span><span id="syncTxt">Mode local</span></div>
+</header>
+
+<main>
+  <!-- ONGLET DEPENSES -->
+  <section id="v-exp">
+    <div class="card">
+      <h2>Total du voyage</h2>
+      <div class="big" id="totalAll">0</div>
+      <div class="muted" id="totalSub">Aucune dépense</div>
+    </div>
+    <div class="card">
+      <h2>Dépenses</h2>
+      <div id="expList"><div class="empty">Aucune dépense.<br>Appuie sur + pour commencer.</div></div>
+    </div>
+  </section>
+
+  <!-- ONGLET BILAN -->
+  <section id="v-bal" class="hidden">
+    <div class="card">
+      <h2>Soldes</h2>
+      <div id="balList"><div class="empty">Ajoute des amis et des dépenses.</div></div>
+      <div class="hint">Positif = on te doit de l'argent. Négatif = tu dois de l'argent.</div>
+    </div>
+    <div class="card">
+      <h2>Qui rembourse qui</h2>
+      <div id="settleList"><div class="empty">Rien à rembourser.</div></div>
+      <button class="ghost" onclick="shareSummary()" style="width:100%;margin-top:6px">Partager le résumé</button>
+    </div>
+    <div class="card">
+      <h2>Par catégorie</h2>
+      <table id="catTable"><tr><td class="muted">—</td></tr></table>
+    </div>
+    <div class="card">
+      <h2>Par personne (ce qui a été avancé)</h2>
+      <table id="payTable"><tr><td class="muted">—</td></tr></table>
+    </div>
+  </section>
+
+  <!-- ONGLET REGLAGES -->
+  <section id="v-set" class="hidden">
+
+    <div class="card" id="cloudCard">
+      <h2>Partage avec tes amis</h2>
+      <div id="cloudBox"></div>
+    </div>
+
+    <div class="card">
+      <h2>Participants</h2>
+      <div id="peopleList"></div>
+      <div class="row" style="margin-top:10px">
+        <input type="text" id="newPerson" placeholder="Prénom" autocomplete="off">
+        <button style="flex:0 0 auto" onclick="addPerson()">Ajouter</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Devises</h2>
+      <label>Devise principale (celle des comptes)</label>
+      <select id="baseCur" onchange="setBase(this.value)"></select>
+      <div id="curList" style="margin-top:10px"></div>
+      <div class="row" style="margin-top:10px">
+        <input type="text" id="newCurCode" placeholder="Code (ex. THB)" maxlength="4" autocomplete="off">
+        <input type="number" id="newCurRate" placeholder="1 unité = ?" step="0.000001">
+        <button style="flex:0 0 auto" onclick="addCur()">+</button>
+      </div>
+      <div class="hint">Le taux indique combien vaut <b>1 unité de cette devise</b> dans la devise principale. Ex. si la principale est EUR et 1 THB = 0,026 EUR, tape 0.026.</div>
+    </div>
+
+    <div class="card">
+      <h2>Catégories</h2>
+      <div class="chips" id="catChips"></div>
+      <div class="row" style="margin-top:10px">
+        <input type="text" id="newCat" placeholder="Nouvelle catégorie" autocomplete="off">
+        <button style="flex:0 0 auto" onclick="addCat()">+</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Données</h2>
+      <div class="row">
+        <button class="ghost" onclick="exportCSV()">Export CSV</button>
+        <button class="ghost" onclick="exportJSON()">Sauvegarde</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost" onclick="document.getElementById('importFile').click()">Restaurer</button>
+        <button class="danger" onclick="resetAll()">Tout effacer</button>
+      </div>
+      <input type="file" id="importFile" accept=".json" class="hidden">
+      <div class="hint" id="dataHint"></div>
+    </div>
+
+    <div class="card">
+      <h2>À propos</h2>
+      <div class="muted">Avances Vacances · <span id="appVer"></span><br>Aucune publicité, aucun tracking.</div>
+    </div>
+  </section>
+</main>
+
+<button class="fab" id="fab" onclick="openExpense()" aria-label="Ajouter une dépense">+</button>
+
+<nav>
+  <button id="t-exp" class="on" onclick="tab('exp')"><span class="i">🧾</span>Dépenses</button>
+  <button id="t-bal" onclick="tab('bal')"><span class="i">⚖️</span>Bilan</button>
+  <button id="t-set" onclick="tab('set')"><span class="i">⚙️</span>Réglages</button>
+</nav>
+
+<!-- FEUILLE DEPENSE -->
+<div class="sheet" id="sheet">
+  <div class="inner">
+    <div class="head">
+      <h2 id="sheetTitle">Nouvelle dépense</h2>
+      <button class="ghost mini" onclick="closeSheet()">Fermer</button>
+    </div>
+
+    <label for="fLabel">Description</label>
+    <input type="text" id="fLabel" placeholder="Ex. Restaurant du soir" autocomplete="off">
+
+    <div class="row" id="amountRow">
+      <div>
+        <label for="fAmount">Montant</label>
+        <input type="number" id="fAmount" inputmode="decimal" step="0.01" placeholder="0.00">
+      </div>
+      <div style="flex:0 0 110px">
+        <label for="fCur">Devise</label>
+        <select id="fCur"></select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="fPayer">Payé par</label>
+        <select id="fPayer"></select>
+      </div>
+      <div>
+        <label for="fDate">Date</label>
+        <input type="date" id="fDate">
+      </div>
+    </div>
+
+    <label for="fCat">Catégorie</label>
+    <select id="fCat"></select>
+
+    <label>Répartition</label>
+    <div class="seg">
+      <button id="m-equal" onclick="setMode('equal')">Parts égales</button>
+      <button id="m-custom" onclick="setMode('custom')">Montant par personne</button>
+    </div>
+
+    <div id="splitBox"></div>
+
+    <div class="row" style="margin-top:16px">
+      <button id="delBtn" class="danger hidden" style="flex:0 0 auto" onclick="deleteExpense()">Supprimer</button>
+      <button onclick="saveExpense()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
