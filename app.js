@@ -1,7 +1,7 @@
 /* Avances Vacances — logique de l'application */
 import { Cloud } from './sync.js';
 
-export const VERSION = '5.1.0';
+export const VERSION = '5.2.0';
 
 /* ---------------- Données ----------------
    S = état du voyage, partagé avec tout le groupe.
@@ -47,6 +47,19 @@ function normalize(o) {
   if (!s.categories.length) s.categories = structuredClone(DEFAULT.categories);
   if (!s.currencies[s.base]) s.currencies[s.base] = 1;
   s.payments.forEach(p => { if (!p.status) p.status = 'confirmed'; });
+
+  // Migration : les comptes étaient tenus en euros dans les versions
+  // précédentes. On bascule une seule fois sur le baht, sans toucher aux
+  // montants saisis — seule la devise d'affichage des comptes change.
+  if (!s.v && s.base !== 'THB' && s.currencies.THB) {
+    const f = s.currencies.THB;
+    const nc = {};
+    Object.keys(s.currencies).forEach(k => nc[k] = s.currencies[k] / f);
+    nc.THB = 1;
+    s.currencies = nc;
+    s.base = 'THB';
+  }
+  s.v = 2;
   return s;
 }
 function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
@@ -103,7 +116,7 @@ function colorOf(id) {
 }
 const avatar = p => `<div class="avatar" style="--c:${colorOf(p.id)}">${esc(initials(p.name))}</div>`;
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-const metaOf = () => ({ trip: S.trip, base: S.base, currencies: S.currencies, categories: S.categories, people: S.people });
+const metaOf = () => ({ trip: S.trip, base: S.base, v: S.v, currencies: S.currencies, categories: S.categories, people: S.people });
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const frDate = d => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? `${m[3]}/${m[2]}` : (d || ''); };
 
