@@ -1,7 +1,7 @@
 /* Avances Vacances — logique de l'application */
 import { Cloud } from './sync.js';
 
-export const VERSION = '5.0.0';
+export const VERSION = '5.1.0';
 
 /* ---------------- Données ----------------
    S = état du voyage, partagé avec tout le groupe.
@@ -19,9 +19,9 @@ const GROUPE = ['Odelia', 'Sacha', 'Ornella', 'Alexandre', 'David', 'Rachel', 'S
 
 const DEFAULT = {
   trip: 'Thaïlande 2026',
-  base: 'EUR',
+  base: 'THB',                         // les comptes sont tenus en baht
   // 1 € = 37,05 ฿ — modifiable dans Réglages → Devises
-  currencies: { EUR: 1, THB: 1 / 37.05 },
+  currencies: { THB: 1, EUR: 37.05 },
   categories: ['🍽️ Restaurant', '🛒 Courses', '🏨 Logement', '🚕 Transport', '🎟️ Activités', '💸 Divers'],
   people: structuredClone(GROUPE),
   expenses: [],
@@ -63,6 +63,12 @@ const meId = () => (ME && P(ME)) ? ME : null;
 const rate = c => S.currencies[c] || 1;
 const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
 const cents = n => Math.round((+n || 0) * 100);
+// Unité la plus fine de la devise principale : 1 centime pour l'euro,
+// 1 baht pour le THB (les satangs n'ont plus cours). C'est sur cette unité
+// que se fait la répartition, donc les montants affichés tombent toujours juste.
+const F = () => (S.base === 'THB' ? 1 : 100);
+const toU = (x, cur) => Math.round((+x || 0) * rate(cur || S.base) * F());
+const fromU = u => u / F();
 function fmt(n, cur) {
   cur = cur || S.base;
   const dec = cur === 'THB' ? 0 : 2;          // les satangs n'existent plus en pratique
@@ -119,20 +125,19 @@ const seedOf = id => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.
 // La répartition se fait sur cette valeur : les comptes tombent donc juste
 // à l'euro près, même quand on a payé en baht.
 function expCents(e) {
-  const r = rate(e.currency);
-  let a = cents(e.amount);
+  let a = +e.amount || 0;
   if (e.mode === 'custom' && !a) {            // anciennes dépenses sans total
-    a = 0; for (const k in (e.shares || {})) a += cents(e.shares[k]);
+    a = 0; for (const k in (e.shares || {})) a += +e.shares[k] || 0;
   }
-  return Math.round(a * r);
+  return toU(a, e.currency);
 }
 function sharesOf(e) {
-  const out = {}, r = rate(e.currency), tot = expCents(e);
+  const out = {}, tot = expCents(e);
   if (e.mode === 'custom') {
     const cc = {};
     let used = 0;
     for (const k in (e.shares || {})) {
-      const c = Math.round(cents(e.shares[k]) * r);
+      const c = toU(e.shares[k], e.currency);
       if (c && P(k)) { cc[k] = c; used += c; }
     }
     // Ce qui n'a été attribué à personne est la part de celui qui a avancé :
@@ -142,17 +147,17 @@ function sharesOf(e) {
       const who = P(e.payer) ? e.payer : Object.keys(cc)[0];
       if (who) cc[who] = (cc[who] || 0) + rest;
     }
-    for (const k in cc) if (cc[k]) out[k] = cc[k] / 100;
+    for (const k in cc) if (cc[k]) out[k] = fromU(cc[k]);
     return out;
   }
   const ps = (e.participants || []).filter(id => P(id));
   if (!ps.length) return out;
   const parts = splitCents(tot, ps.length, seedOf(e.id) % ps.length);
-  ps.forEach((id, i) => out[id] = parts[i] / 100);
+  ps.forEach((id, i) => out[id] = fromU(parts[i]));
   return out;
 }
-const expTotalBase = e => expCents(e) / 100;
-const payTotalBase = p => Math.round(cents(p.amount) * rate(p.currency)) / 100;
+const expTotalBase = e => fromU(expCents(e));
+const payTotalBase = p => fromU(toU(p.amount, p.currency));
 const counts = p => p.status !== 'rejected';           // un refus ne compte pas
 
 function balances() {
@@ -318,7 +323,9 @@ function renderAccounts() {
   el.innerHTML = S.people.length ? S.people.map(p => {
     const v = r2(b[p.id] || 0), pend = r2(pendingAmount(p.id));
     const nb = statement(p.id).filter(l => l.kind === 'part').length;
-    const lbl = p.id === ME ? 'toi' : (v < -0.005 ? 'te doit' : v > 0.005 ? 'a avancé' : 'à jour');
+    const lbl = p.id === ME
+      ? (v > 0.005 ? 'le groupe te doit' : v < -0.005 ? 'tu dois' : 'à jour')
+      : (v < -0.005 ? 'te doit' : v > 0.005 ? 'tu lui dois' : 'à jour');
     return `<div class="bal" data-p="${p.id}">
       ${avatar(p)}
       <div class="n">${esc(p.name)}${p.id === ME ? ' <span class="tag">moi</span>' : ''}
@@ -375,13 +382,13 @@ function renderCurrencies() {
   const el = document.getElementById('curList');
   el.innerHTML = Object.keys(S.currencies).map(c => c === S.base
     ? `<div class="person"><div style="flex:1"><b>${esc(c)}</b> <span class="muted">devise principale</span></div></div>`
-    : `<div class="person"><div style="flex:1">1 <b>${esc(S.base)}</b> =</div>
-        <input type="number" step="0.01" value="${r2(1 / S.currencies[c])}" data-cur="${esc(c)}" style="width:110px;text-align:right">
-        <span class="muted"><b>${esc(c)}</b></span>
+    : `<div class="person"><div style="flex:1">1 <b>${esc(c)}</b> =</div>
+        <input type="number" step="0.0001" value="${S.currencies[c]}" data-cur="${esc(c)}" style="width:110px;text-align:right">
+        <span class="muted"><b>${esc(S.base)}</b></span>
         <button class="danger mini" data-delcur="${esc(c)}">✕</button></div>`).join('');
   el.querySelectorAll('input[data-cur]').forEach(i => i.onchange = () => {
     const v = parseFloat(i.value);
-    if (v > 0) S.currencies[i.dataset.cur] = 1 / v;
+    if (v > 0) S.currencies[i.dataset.cur] = v;
     commitMeta();
   });
   el.querySelectorAll('button[data-delcur]').forEach(b => b.onclick = () => delCur(b.dataset.delcur));
@@ -485,7 +492,7 @@ function addCur() {
   const c = document.getElementById('newCurCode').value.trim().toUpperCase();
   const r = parseFloat(document.getElementById('newCurRate').value);
   if (!/^[A-Z]{3,4}$/.test(c) || !r || r <= 0) { toast('Indique un code (ex. THB) et un taux valides.'); return; }
-  S.currencies[c] = 1 / r;
+  S.currencies[c] = r;
   document.getElementById('newCurCode').value = ''; document.getElementById('newCurRate').value = '';
   commitMeta();
 }
@@ -521,7 +528,7 @@ function openExpense(id) {
   } else {
     document.getElementById('fLabel').value = '';
     document.getElementById('fAmount').value = '';
-    fCur = alt() || S.base;
+    fCur = S.base;
     document.getElementById('fPayer').value = meId() || S.people[0].id;
     document.getElementById('fDate').value = today();
     document.getElementById('fCat').value = S.categories[0];
@@ -601,7 +608,7 @@ function renderSplit() {
     const amt = parseFloat(document.getElementById('fAmount').value) || 0;
     const ps = S.people.filter(p => sel.has(p.id));
     // Aperçu calculé comme les comptes : en centimes de la devise principale.
-    const totC = Math.round(cents(amt) * rate(fCur));
+    const totC = toU(amt, fCur);
     const parts = ps.length ? splitCents(totC, ps.length, 0) : [];
     const uneven = parts.length && parts[0] !== parts[parts.length - 1];
     const nb = parts.filter(x => x === parts[0]).length;
@@ -613,9 +620,9 @@ function renderSplit() {
         <button class="ghost mini" id="allOff">Aucun</button>
       </div>
       <div class="tot"><span>÷ ${ps.length || 0} participant${ps.length > 1 ? 's' : ''}</span>
-        <b>${ps.length ? both(parts[0] / 100) : fmt(0)} chacun</b></div>
-      ${uneven ? `<div class="hint">Ça ne tombe pas rond : ${nb} personne${nb > 1 ? 's paient' : ' paie'} 1 centime de plus, pour que le total soit exact.</div>` : ''}
-      ${ps.length ? `<div class="mini-list">${ps.map((p, i) => `<span>${esc(p.name)} <b>${fmt(parts[i] / 100)}</b></span>`).join('')}</div>` : ''}`;
+        <b>${ps.length ? both(fromU(parts[0])) : fmt(0)} chacun</b></div>
+      ${uneven ? `<div class="hint">Ça ne tombe pas rond : ${nb} personne${nb > 1 ? 's paient' : ' paie'} ${S.base === 'THB' ? '1 ฿' : '1 centime'} de plus, pour que le total soit exact.</div>` : ''}
+      ${ps.length ? `<div class="mini-list">${ps.map((p, i) => `<span>${esc(p.name)} <b>${fmt(fromU(parts[i]))}</b></span>`).join('')}</div>` : ''}`;
     box.querySelectorAll('.chip').forEach(c => c.onclick = () => {
       sel.has(c.dataset.p) ? sel.delete(c.dataset.p) : sel.add(c.dataset.p); renderSplit();
     });

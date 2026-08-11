@@ -58,7 +58,10 @@
     <div class="card">
       <h2>Comptes</h2>
       <div id="accList"><div class="empty">Ajoute des amis dans Réglages.</div></div>
-      <div class="hint">Appuie sur quelqu'un pour voir le détail de son compte et lui envoyer son relevé.</div>
+      <div class="hint"><b class="pos">Vert</b> = cette personne a avancé de l'argent, on lui doit.
+      <b class="neg">Rouge</b> = elle doit encore de l'argent. Comme tu paies pour tout le monde, ton solde à toi est
+      normalement vert : c'est ce que le groupe te doit.<br>
+      Appuie sur quelqu'un pour voir le détail de son compte et lui envoyer son relevé.</div>
     </div>
     <div class="card">
       <h2>Remboursements reçus</h2>
@@ -98,10 +101,10 @@
       <div id="curList" style="margin-top:10px"></div>
       <div class="row" style="margin-top:10px">
         <input type="text" id="newCurCode" placeholder="Code (ex. THB)" maxlength="4" autocomplete="off">
-        <input type="number" id="newCurRate" placeholder="1 € = ?" step="0.01">
+        <input type="number" id="newCurRate" placeholder="1 unité = ?" step="0.0001">
         <button style="flex:0 0 auto" onclick="addCur()">+</button>
       </div>
-      <div class="hint">Combien d'unités de la devise étrangère vaut 1 unité de la devise principale. Ex. 1 € = 37,05 ฿.</div>
+      <div class="hint">Combien vaut 1 unité de la devise étrangère dans la devise principale. Ex. si les comptes sont en baht : 1 € = 37,05 ฿.</div>
     </div>
 
     <div class="card">
